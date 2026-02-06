@@ -26,7 +26,14 @@ export const ThxLayout = () => {
         </Typography.Text>
       </div>
       <div className={appSt.bottomBtn()}>
-        <Button block view="secondary" href={link}>
+        <Button
+          block
+          view="secondary"
+          href={link}
+          onClick={() => {
+            window.gtag('event', '7106_open_pds_final_bundle', { var: 'var3' });
+          }}
+        >
           Открыть ПДС
         </Button>
       </div>

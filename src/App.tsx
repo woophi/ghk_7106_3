@@ -38,7 +38,6 @@ import {
   randomEmailRu,
   randomOtpCode,
 } from './utils/calc';
-import { round } from './utils/round';
 
 const impItems = [
   {
@@ -47,7 +46,7 @@ const impItems = [
     Icon: CategoryCommisionMIcon,
   },
   {
-    title: '60 000 ₽',
+    title: '30 000 ₽',
     subtitle: 'Минимальная сумма вклада',
     Icon: BanknotesMIcon,
   },
@@ -89,7 +88,7 @@ const pdsSlides = [
 const hiw = [
   {
     title: 'Откройте ПДС в приложении',
-    desc: 'На сумму от 60 000 ₽ — это ваш первый взнос в программу',
+    desc: 'На сумму от 30 000 ₽ — это ваш первый взнос в программу',
   },
   {
     title: 'Откройте Альфа‑Вклад',
@@ -156,34 +155,32 @@ const investPeriods = [
   },
 ];
 
-const MIN_INVEST_SUM = 60_000;
+const MIN_INVEST_SUM = 30_000;
 
 const docNumberPds = randomDocNumber();
 const docNumberVklad = randomDocNumber();
 const emailRu = randomEmailRu();
 
 export const App = () => {
-  const [loading, setLoading] = useState(false);
   const [thxShow, setThx] = useState(LS.getItem(LSKeys.ShowThx, false));
   const [collapsedItems, setCollapsedItem] = useState<string[]>([]);
-  const [steps, setSteps] = useState<'init' | 'step1' | 'step2' | 'step-confirm3' | 'step-confirmed3' | 'step3' | 'step4'>(
-    'init',
-  );
-  const [sum, setSum] = useState(MIN_INVEST_SUM);
+  const [steps, setSteps] = useState<
+    'init' | 'step1' | 'step2' | 'step-confirm3' | 'step-confirmed3' | 'step3' | 'step4' | 'step5'
+  >('init');
+  const [pdsSum, setPdsSum] = useState(MIN_INVEST_SUM);
+  const [vkladSum, setVkladSum] = useState(MIN_INVEST_SUM);
   const [error, setError] = useState('');
   const [invetstPeriod, setInvestPeriod] = useState<number>(1);
   const [otpCode, setOtpCode] = useState('');
 
-  const shouldErrorInvestSum = !sum || sum < MIN_INVEST_SUM;
+  const shouldErrorInvestSum = !pdsSum || pdsSum < MIN_INVEST_SUM;
   const investPeriodData = investPeriods.find(period => period.value === invetstPeriod) ?? investPeriods[0];
-  const vkladSum = round(sum / 2);
-  const pdsSum = round(sum / 2);
   const taxRefund = calculateTaxRefund(pdsSum);
   const govCharity = calculateStateSupport(pdsSum);
   const investmentsIncome = calculateInvestmentIncome(pdsSum, 0);
   const total = investmentsIncome + govCharity + taxRefund;
 
-  const withOtpCode = steps === 'step-confirm3' || steps === 'step4';
+  const withOtpCode = steps === 'step-confirm3' || steps === 'step5';
 
   useTimeout(
     () => {
@@ -194,12 +191,12 @@ export const App = () => {
   useTimeout(
     () => {
       if (steps === 'step-confirm3') {
+        window.gtag('event', '7106_sms_pds', { var: 'var3' });
         setSteps('step-confirmed3');
       }
-      if (steps === 'step4') {
-        setLoading(true);
+      if (steps === 'step5') {
+        window.gtag('event', '7106_sms_deposit', { var: 'var3' });
         setThx(true);
-        setLoading(false);
         // TODO Submit
       }
       setOtpCode('');
@@ -214,8 +211,6 @@ export const App = () => {
   }, []);
 
   const submit = () => {
-    setLoading(true);
-
     // sendDataToGA({
     //   autopayments: Number(checked) as 1 | 0,
     //   limit: Number(checked2) as 1 | 0,
@@ -228,12 +223,12 @@ export const App = () => {
     //   setLoading(false);
     // });
     setThx(true);
-    setLoading(false);
   };
 
   const goToStep2 = () => {
+    window.gtag('event', '7106_open_pds', { var: 'var3' });
     if (shouldErrorInvestSum) {
-      setError('Минимальная сумма — 60 000 ₽');
+      setError('Минимальная сумма — 30 000 ₽');
       return;
     }
 
@@ -241,6 +236,7 @@ export const App = () => {
   };
 
   const goToConfirmStep3 = () => {
+    window.gtag('event', '7106_pay_pds', { var: 'var3' });
     setSteps('step-confirm3');
   };
 
@@ -248,22 +244,26 @@ export const App = () => {
     if (error) {
       setError('');
     }
-    setSum(value ?? 0);
+    if (steps === 'step3') {
+      setVkladSum(value ?? 0);
+    } else {
+      setPdsSum(value ?? 0);
+    }
   };
   if (thxShow) {
     return <ThxLayout />;
   }
 
-  if (steps === 'step3') {
+  if (steps === 'step4') {
     return (
       <>
         <div className={appSt.container}>
           <Typography.Text view="caps" style={{ marginTop: '1rem' }}>
-            ШАГ 3 из 3
+            ШАГ 4 из 4
           </Typography.Text>
 
           <Typography.TitleResponsive tag="h1" view="large" font="system" weight="semibold">
-            Открытие вклада
+            Всё проверьте, и можно оплатить и открыть вклад
           </Typography.TitleResponsive>
 
           <div>
@@ -303,8 +303,128 @@ export const App = () => {
         <Gap size={128} />
 
         <div className={appSt.bottomBtn()}>
-          <Button block view="primary" onClick={() => setSteps('step4')}>
-            Оплатить вклад
+          <Button
+            block
+            view="primary"
+            onClick={() => {
+              window.gtag('event', '7106_click_pay_deposit_var3');
+              setSteps('step5');
+            }}
+          >
+            Оплатить
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  if (steps === 'step3') {
+    return (
+      <>
+        <div className={appSt.container}>
+          <Typography.Text view="caps" style={{ marginTop: '1rem' }}>
+            ШАГ 3 из 4
+          </Typography.Text>
+
+          <Typography.TitleResponsive tag="h1" view="large" font="system" weight="semibold">
+            Открытие вклада
+          </Typography.TitleResponsive>
+
+          <div style={{ marginTop: '12px' }}>
+            <Typography.Text view="primary-small" color="secondary" tag="p" defaultMargins={false}>
+              Счёт списания
+            </Typography.Text>
+
+            <div className={appSt.bannerAccount}>
+              <img src={rubIcon} width={48} height={48} alt="rubIcon" />
+
+              <Typography.Text view="primary-small" weight="medium">
+                Текущий счёт
+              </Typography.Text>
+            </div>
+          </div>
+
+          <AmountInput
+            label="Cумма инвестиций"
+            labelView="outer"
+            value={vkladSum}
+            error={error}
+            onChange={handleChangeInput}
+            block
+            minority={1}
+            bold={false}
+            min={MIN_INVEST_SUM}
+          />
+          <div>
+            <Typography.Text view="primary-small" color="secondary" tag="p" defaultMargins={false}>
+              На какой срок открыть вклад
+            </Typography.Text>
+          </div>
+        </div>
+
+        <div>
+          <Swiper style={{ margin: '-8px 0 1rem 1rem' }} spaceBetween={12} slidesPerView="auto">
+            {investPeriods.map(({ title, value }) => (
+              <SwiperSlide key={value} className={appSt.swSlide}>
+                <Tag
+                  view="filled"
+                  size="xxs"
+                  shape="rectangular"
+                  checked={invetstPeriod === value}
+                  onClick={() => setInvestPeriod(value)}
+                >
+                  {title}
+                </Tag>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+
+        <div className={appSt.box2}>
+          <Typography.TitleResponsive tag="h2" view="xsmall" font="system" weight="semibold">
+            Ваша выгода
+          </Typography.TitleResponsive>
+
+          <div className={appSt.box3}>
+            <div className={appSt.rowSb}>
+              <Typography.Text view="primary-small" color="secondary">
+                Ставка
+              </Typography.Text>
+              <Typography.Text view="primary-small">
+                {(investPeriodData.vkladPercent * 100).toLocaleString('ru-RU')}% годовых
+              </Typography.Text>
+            </div>
+            <div className={appSt.rowSb}>
+              <Typography.Text view="primary-small" color="secondary">
+                Срок
+              </Typography.Text>
+              <Typography.Text view="primary-small">{investPeriodData.title}</Typography.Text>
+            </div>
+            <Divider />
+
+            <div className={appSt.rowSb}>
+              <Typography.Text view="primary-small" color="secondary">
+                Доход за срок
+              </Typography.Text>
+              <Typography.Text view="primary-medium" weight="medium">
+                {calcIncomeByMonths(vkladSum, investPeriodData.vkladPercent, invetstPeriod).toLocaleString('ru-RU')} ₽
+              </Typography.Text>
+            </div>
+          </div>
+        </div>
+
+        <Gap size={128} />
+
+        <div className={appSt.bottomBtn()}>
+          <Button
+            block
+            view="primary"
+            onClick={() => {
+              window.gtag('event', '7106_click_open_deposit_var3');
+              setSteps('step4');
+            }}
+          >
+            Открыть
           </Button>
         </div>
       </>
@@ -349,7 +469,7 @@ export const App = () => {
               weight="semibold"
               style={{ textAlign: 'center', marginTop: '1rem' }}
             >
-              {vkladSum.toLocaleString('ru-RU')} ₽
+              {pdsSum.toLocaleString('ru-RU')} ₽
             </Typography.TitleResponsive>
             <Typography.Text view="primary-small">Деньги зарезервированы и спишутся после открытия вклада</Typography.Text>
             <Typography.Text view="primary-small" color="secondary">
@@ -364,7 +484,10 @@ export const App = () => {
           <Button
             block
             view="secondary"
-            onClick={() => setSteps('step3')}
+            onClick={() => {
+              window.gtag('event', '7106_open_deposit_after_pds', { var: 'var3' });
+              setSteps('step3');
+            }}
             style={{ backgroundColor: '#FFFFFF24', color: '#fff' }}
           >
             Открыть вклад
@@ -406,11 +529,11 @@ export const App = () => {
       <>
         <div className={appSt.container}>
           <Typography.Text view="caps" style={{ marginTop: '1rem' }}>
-            ШАГ 2 из 3
+            ШАГ 2 из 4
           </Typography.Text>
 
           <Typography.TitleResponsive tag="h1" view="large" font="system" weight="semibold">
-            Открытие ПДС
+            Всё проверьте, и можно оплатить и открыть ПДС
           </Typography.TitleResponsive>
 
           <div>
@@ -452,16 +575,12 @@ export const App = () => {
       <>
         <div className={appSt.container}>
           <Typography.Text view="caps" style={{ marginTop: '1rem' }}>
-            ШАГ 1 из 3
+            ШАГ 1 из 4
           </Typography.Text>
 
           <Typography.TitleResponsive tag="h1" view="large" font="system" weight="semibold">
-            Заполните данные
+            Открытие ПДС
           </Typography.TitleResponsive>
-
-          <Typography.Text view="primary-medium" color="secondary">
-            Далее вы подтвердите открытие ПДС и вклада
-          </Typography.Text>
 
           <div style={{ marginTop: '12px' }}>
             <Typography.Text view="primary-small" color="secondary" tag="p" defaultMargins={false}>
@@ -481,101 +600,24 @@ export const App = () => {
             <AmountInput
               label="Cумма инвестиций"
               labelView="outer"
-              value={sum}
+              value={pdsSum}
               error={error}
               onChange={handleChangeInput}
               block
               minority={1}
               bold={false}
               min={MIN_INVEST_SUM}
+              hint="Минимальная сумма — 30 000 ₽"
             />
-            {!shouldErrorInvestSum && (
-              <>
-                <div className={appSt.rowSb} style={{ marginTop: '.5rem' }}>
-                  <Typography.Text view="primary-small" color="secondary">
-                    На вклад
-                  </Typography.Text>
-                  <Typography.Text view="primary-small" color="secondary">
-                    {round(sum / 2).toLocaleString('ru-RU')} ₽
-                  </Typography.Text>
-                </div>
-                <div className={appSt.rowSb}>
-                  <Typography.Text view="primary-small" color="secondary">
-                    На ПДС
-                  </Typography.Text>
-                  <Typography.Text view="primary-small" color="secondary">
-                    {round(sum / 2).toLocaleString('ru-RU')} ₽
-                  </Typography.Text>
-                </div>
-              </>
-            )}
           </div>
-
-          <div>
-            <Typography.Text view="primary-small" color="secondary" tag="p" defaultMargins={false}>
-              На какой срок открыть вклад
-            </Typography.Text>
-          </div>
-        </div>
-
-        <div>
-          <Swiper style={{ margin: '-8px 0 1rem 1rem' }} spaceBetween={12} slidesPerView="auto">
-            {investPeriods.map(({ title, value }) => (
-              <SwiperSlide key={value} className={appSt.swSlide}>
-                <Tag
-                  view="filled"
-                  size="xxs"
-                  shape="rectangular"
-                  checked={invetstPeriod === value}
-                  onClick={() => setInvestPeriod(value)}
-                >
-                  {title}
-                </Tag>
-              </SwiperSlide>
-            ))}
-          </Swiper>
         </div>
 
         <div className={appSt.box2}>
           <Typography.TitleResponsive tag="h2" view="xsmall" font="system" weight="semibold">
-            Ваша выгода по двум продуктам
+            Ваша выгода
           </Typography.TitleResponsive>
 
           <div className={appSt.box3}>
-            <Typography.Text view="primary-small" weight="medium">
-              Вклад
-            </Typography.Text>
-
-            <div className={appSt.rowSb}>
-              <Typography.Text view="primary-small" color="secondary">
-                Ставка
-              </Typography.Text>
-              <Typography.Text view="primary-small">
-                {(investPeriodData.vkladPercent * 100).toLocaleString('ru-RU')}% годовых
-              </Typography.Text>
-            </div>
-            <div className={appSt.rowSb}>
-              <Typography.Text view="primary-small" color="secondary">
-                Срок
-              </Typography.Text>
-              <Typography.Text view="primary-small">{investPeriodData.title}</Typography.Text>
-            </div>
-            <Divider />
-
-            <div className={appSt.rowSb}>
-              <Typography.Text view="primary-small" color="secondary">
-                Доход за срок
-              </Typography.Text>
-              <Typography.Text view="primary-medium" weight="medium">
-                {calcIncomeByMonths(vkladSum, investPeriodData.vkladPercent, invetstPeriod).toLocaleString('ru-RU')} ₽
-              </Typography.Text>
-            </div>
-          </div>
-          <div className={appSt.box3}>
-            <Typography.Text view="primary-small" weight="medium">
-              ПДС
-            </Typography.Text>
-
             <div className={appSt.rowSb}>
               <Typography.Text view="primary-small" color="secondary">
                 Срок
@@ -753,7 +795,7 @@ export const App = () => {
             <div key={index}>
               <div
                 onClick={() => {
-                  window.gtag('event', '6927_card_faq', { faq: String(index + 1), var: 'var2' });
+                  window.gtag('event', '7106_bundle_faq', { faq: String(index + 1), var: 'var3' });
 
                   setCollapsedItem(items =>
                     items.includes(String(index + 1))
@@ -790,7 +832,14 @@ export const App = () => {
       <Gap size={96} />
 
       <div className={appSt.bottomBtn()}>
-        <Button block view="primary" onClick={() => setSteps('step1')}>
+        <Button
+          block
+          view="primary"
+          onClick={() => {
+            window.gtag('event', '7106_start_open_bundle', { var: 'var3' });
+            setSteps('step1');
+          }}
+        >
           Открыть Вклад + ПДС
         </Button>
       </div>

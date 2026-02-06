@@ -196,8 +196,7 @@ export const App = () => {
       }
       if (steps === 'step5') {
         window.gtag('event', '7106_sms_deposit', { var: 'var3' });
-        setThx(true);
-        // TODO Submit
+        submit();
       }
       setOtpCode('');
     },

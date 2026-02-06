@@ -3,7 +3,7 @@ import { Button } from '@alfalab/core-components/button/cssm';
 import { Collapse } from '@alfalab/core-components/collapse/cssm';
 import { Divider } from '@alfalab/core-components/divider/cssm';
 import { Gap } from '@alfalab/core-components/gap/cssm';
-import { SuperEllipse } from '@alfalab/core-components/icon-view/super-ellipse';
+import { SuperEllipse } from '@alfalab/core-components/icon-view/cssm/super-ellipse';
 import { PureCell } from '@alfalab/core-components/pure-cell/cssm';
 import { Spinner } from '@alfalab/core-components/spinner/cssm';
 import { Steps } from '@alfalab/core-components/steps/cssm';

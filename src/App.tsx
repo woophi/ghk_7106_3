@@ -193,6 +193,10 @@ export const App = () => {
     () => {
       if (steps === 'step-confirm3') {
         window.gtag('event', '7106_sms_pds', { var: 'var3' });
+        sendDataToGA({
+          sum: pdsSum,
+          product_type: 'ПДС',
+        });
         setSteps('step-confirmed3');
       }
       if (steps === 'step5') {
@@ -212,7 +216,8 @@ export const App = () => {
 
   const submit = () => {
     sendDataToGA({
-      sum: pdsSum + vkladSum,
+      sum: vkladSum,
+      product_type: 'Вклад',
     });
     setThx(true);
     LS.setItem(LSKeys.ShowThx, true);

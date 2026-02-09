@@ -175,6 +175,7 @@ export const App = () => {
   const [otpCode, setOtpCode] = useState('');
 
   const shouldErrorInvestSum = !pdsSum || pdsSum < MIN_INVEST_SUM;
+  const shouldErrorVkladSum = vkladSum !== pdsSum;
   const investPeriodData = investPeriods.find(period => period.value === invetstPeriod) ?? investPeriods[0];
   const taxRefund = calculateTaxRefund(pdsSum);
   const govCharity = calculateStateSupport(pdsSum);
@@ -231,6 +232,15 @@ export const App = () => {
     }
 
     setSteps('step2');
+  };
+  const goToStep4 = () => {
+    window.gtag('event', '7106_click_open_deposit_var3');
+    if (shouldErrorVkladSum) {
+      setError(`Сумма вклада должна быть равна сумме ПДС — ${pdsSum.toLocaleString('ru-RU')} ₽`);
+      return;
+    }
+
+    setSteps('step4');
   };
 
   const goToConfirmStep3 = () => {
@@ -352,6 +362,7 @@ export const App = () => {
             minority={1}
             bold={false}
             min={MIN_INVEST_SUM}
+            hint={`Сумма вклада должна быть равна сумме ПДС — ${pdsSum.toLocaleString('ru-RU')} ₽`}
           />
           <div>
             <Typography.Text view="primary-small" color="secondary" tag="p" defaultMargins={false}>
@@ -414,14 +425,7 @@ export const App = () => {
         <Gap size={128} />
 
         <div className={appSt.bottomBtn()}>
-          <Button
-            block
-            view="primary"
-            onClick={() => {
-              window.gtag('event', '7106_click_open_deposit_var3');
-              setSteps('step4');
-            }}
-          >
+          <Button block view="primary" onClick={goToStep4}>
             Открыть
           </Button>
         </div>
